@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Realtime Waveform (Built-in Mic)</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap");
+            :root {
+                --bg: #0c111b;
+                --panel: rgba(255, 255, 255, 0.04);
+                --accent: #8ef3c5;
+                --accent-2: #5ad1ff;
+                --text: #e8eefc;
+                --muted: #8fa3c0;
+                --error: #ff6b6b;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                min-height: 100vh;
+                font-family: "Space Grotesk", "Segoe UI", sans-serif;
+                background: radial-gradient(
+                    circle at 20% 20%,
+                    #142037 0%,
+                    #0c111b 50%,
+                    #090d15 100%
+                );
+                color: var(--text);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+            }
+            .card {
+                width: min(900px, 100%);
+                background: var(--panel);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                padding: 20px 20px 16px;
+                backdrop-filter: blur(8px);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+            }
+            header {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+            h1 {
+                font-size: 26px;
+                margin: 0;
+                letter-spacing: -0.02em;
+            }
+            .pill {
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.06);
+                font-size: 12px;
+                color: var(--muted);
+            }
+            .controls {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+            button {
+                background: linear-gradient(
+                    120deg,
+                    var(--accent),
+                    var(--accent-2)
+                );
+                color: #0b1220;
+                border: none;
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-weight: 600;
+                letter-spacing: 0.01em;
+                cursor: pointer;
+                transition:
+                    transform 120ms ease,
+                    box-shadow 120ms ease;
+            }
+            button:active {
+                transform: translateY(1px);
+            }
+            button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            #status {
+                font-size: 14px;
+                color: var(--muted);
+            }
+            .canvas-wrap {
+                position: relative;
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            canvas {
+                width: 100%;
+                height: 320px;
+                display: block;
+            }
+            .meta {
+                display: flex;
+                justify-content: space-between;
+                font-size: 12px;
+                color: var(--muted);
+                margin-top: 8px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .indicator {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--muted);
+                box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+            }
+            .dot.live {
+                background: var(--accent);
+            }
+            .dot.error {
+                background: var(--error);
+            }
+            @media (max-width: 600px) {
+                h1 {
+                    font-size: 22px;
+                }
+                canvas {
+                    height: 240px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <header>
+                <h1>Mic Waveform</h1>
+                <span class="pill">MVP · Built‑in microphone</span>
+            </header>
+            <div class="controls">
+                <button id="toggle">Start Listening</button>
+                <div id="status">Click start to request microphone access.</div>
+            </div>
+            <div class="controls">
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    Gain
+                    <input
+                        id="gain"
+                        type="range"
+                        min="0.5"
+                        max="4"
+                        step="0.1"
+                        value="1.5"
+                    />
+                    <span id="gain-value">1.5×</span>
+                </label>
+            </div>
+            <div class="controls">
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    Smoothness
+                    <input
+                        id="smooth"
+                        type="range"
+                        min="64"
+                        max="2048"
+                        step="64"
+                        value="512"
+                    />
+                    <span id="smooth-value">512 pts</span>
+                </label>
+            </div>
+            <div class="controls" style="flex-wrap: wrap; gap: 12px">
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    Animate
+                    <input id="animate" type="checkbox" checked />
+                </label>
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    FPS
+                    <input
+                        id="fps"
+                        type="range"
+                        min="15"
+                        max="90"
+                        step="5"
+                        value="60"
+                    />
+                    <span id="fps-value">60 fps</span>
+                </label>
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    Stroke
+                    <input
+                        id="stroke"
+                        type="range"
+                        min="1"
+                        max="5"
+                        step="0.1"
+                        value="2.4"
+                    />
+                    <span id="stroke-value">2.4 px</span>
+                </label>
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: var(--muted);
+                    "
+                >
+                    Trail
+                    <input
+                        id="trail"
+                        type="range"
+                        min="0"
+                        max="0.4"
+                        step="0.02"
+                        value="0.12"
+                    />
+                    <span id="trail-value">0.12 fade</span>
+                </label>
+            </div>
+            <div class="canvas-wrap">
+                <canvas id="scope" width="900" height="320"></canvas>
+            </div>
+            <div class="meta">
+                <div class="indicator">
+                    <span class="dot" id="dot"></span
+                    ><span id="device-label">Input: (not selected)</span>
+                </div>
+                <div id="sample-rate">Sample rate: —</div>
+                <div id="clipping">Clipping: —</div>
+            </div>
+        </div>
+
+        <script>
+            const toggleBtn = document.getElementById("toggle");
+            const statusEl = document.getElementById("status");
+            const canvas = document.getElementById("scope");
+            const ctx = canvas.getContext("2d");
+            const deviceLabelEl = document.getElementById("device-label");
+            const dot = document.getElementById("dot");
+            const sampleRateEl = document.getElementById("sample-rate");
+            const clippingEl = document.getElementById("clipping");
+            const gainSlider = document.getElementById("gain");
+            const gainValue = document.getElementById("gain-value");
+            const smoothSlider = document.getElementById("smooth");
+            const smoothValue = document.getElementById("smooth-value");
+            const animateCheckbox = document.getElementById("animate");
+            const fpsSlider = document.getElementById("fps");
+            const fpsValue = document.getElementById("fps-value");
+            const strokeSlider = document.getElementById("stroke");
+            const strokeValue = document.getElementById("stroke-value");
+            const trailSlider = document.getElementById("trail");
+            const trailValue = document.getElementById("trail-value");
+
+            const cssVar = (name) =>
+                getComputedStyle(document.documentElement)
+                    .getPropertyValue(name)
+                    .trim();
+            const palette = {
+                accent: cssVar("--accent") || "#8ef3c5",
+                accent2: cssVar("--accent-2") || "#5ad1ff",
+                zero: "rgba(255,255,255,0.08)",
+            };
+
+            let audioCtx = null;
+            let analyser = null;
+            let gainNode = null;
+            let dataArray = null;
+            let stream = null;
+            let rafId = null;
+            let running = false;
+            let targetPoints = parseInt(smoothSlider.value, 10);
+            let animationEnabled = animateCheckbox.checked;
+            let fpsCap = parseInt(fpsSlider.value, 10);
+            let strokeWidth = parseFloat(strokeSlider.value);
+            let lastFrame = 0;
+            let fadeAmount = parseFloat(trailSlider.value);
+
+            function setStatus(text, tone = "normal") {
+                statusEl.textContent = text;
+                if (tone === "error") {
+                    statusEl.style.color = "var(--error)";
+                    dot.classList.add("error");
+                    dot.classList.remove("live");
+                } else {
+                    statusEl.style.color = "var(--muted)";
+                    dot.classList.remove("error");
+                }
+            }
+
+            function setLive(on) {
+                dot.classList.toggle("live", on);
+            }
+
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+
+            window.addEventListener("resize", resizeCanvas);
+            resizeCanvas();
+
+            function drawWaveform(ts = 0) {
+                if (!analyser || !running) return;
+                if (!animationEnabled) {
+                    rafId = requestAnimationFrame(drawWaveform);
+                    return;
+                }
+                if (fpsCap > 0 && ts - lastFrame < 1000 / fpsCap) {
+                    rafId = requestAnimationFrame(drawWaveform);
+                    return;
+                }
+                lastFrame = ts;
+                analyser.getByteTimeDomainData(dataArray);
+
+                const w = canvas.width / window.devicePixelRatio;
+                const h = canvas.height / window.devicePixelRatio;
+
+                // fade previous frame for trailing effect
+                ctx.fillStyle = `rgba(12,17,27,${fadeAmount})`;
+                ctx.fillRect(0, 0, w, h);
+
+                // zero line
+                ctx.strokeStyle = palette.zero;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, h / 2);
+                ctx.lineTo(w, h / 2);
+                ctx.stroke();
+
+                // waveform (smoothed)
+                const grad = ctx.createLinearGradient(0, 0, w, 0);
+                grad.addColorStop(0, palette.accent);
+                grad.addColorStop(1, palette.accent2);
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = strokeWidth;
+                ctx.lineJoin = "round";
+                ctx.lineCap = "round";
+                ctx.beginPath();
+
+                const step = Math.max(
+                    1,
+                    Math.floor(dataArray.length / targetPoints),
+                );
+                let lastX = 0,
+                    lastY = h / 2;
+                const totalSegments = Math.ceil(dataArray.length / step);
+                for (
+                    let i = 0, drawn = 0;
+                    i < dataArray.length;
+                    i += step, drawn++
+                ) {
+                    const v = dataArray[i] / 128.0; // center at 1.0
+                    const y = (v * h) / 2;
+                    const x = (drawn / (totalSegments - 1 || 1)) * w;
+                    if (drawn === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        const xc = (lastX + x) / 2;
+                        const yc = (lastY + y) / 2;
+                        ctx.quadraticCurveTo(lastX, lastY, xc, yc);
+                    }
+                    lastX = x;
+                    lastY = y;
+                }
+                ctx.lineTo(lastX, lastY);
+                ctx.stroke();
+
+                const max = Math.max(...dataArray);
+                const min = Math.min(...dataArray);
+                const clipped = max >= 250 || min <= 5;
+                clippingEl.textContent = `Clipping: ${clipped ? "Yes" : "No"}`;
+                clippingEl.style.color = clipped
+                    ? "var(--error)"
+                    : "var(--muted)";
+
+                rafId = requestAnimationFrame(drawWaveform);
+            }
+
+            async function start() {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    setStatus(
+                        "getUserMedia not supported in this browser.",
+                        "error",
+                    );
+                    return;
+                }
+                toggleBtn.disabled = true;
+                setStatus("Requesting microphone...");
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                        },
+                    });
+                    audioCtx = new AudioContext();
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 2048;
+                    analyser.smoothingTimeConstant = 0.0;
+                    dataArray = new Uint8Array(analyser.fftSize);
+
+                    const source = audioCtx.createMediaStreamSource(stream);
+                    gainNode = audioCtx.createGain();
+                    gainNode.gain.value = parseFloat(gainSlider.value);
+                    source.connect(gainNode);
+                    gainNode.connect(analyser);
+
+                    sampleRateEl.textContent = `Sample rate: ${audioCtx.sampleRate} Hz`;
+                    setStatus("Listening…");
+                    setLive(true);
+                    running = true;
+                    lastFrame = 0;
+                    drawWaveform();
+
+                    const devices =
+                        await navigator.mediaDevices.enumerateDevices();
+                    const mic =
+                        devices.find(
+                            (d) =>
+                                d.kind === "audioinput" &&
+                                /microphone/i.test(d.label),
+                        ) || devices.find((d) => d.kind === "audioinput");
+                    deviceLabelEl.textContent = `Input: ${mic?.label || "Built-in mic"}`;
+
+                    toggleBtn.textContent = "Stop";
+                } catch (err) {
+                    console.error(err);
+                    setStatus(
+                        err.name === "NotAllowedError"
+                            ? "Mic permission denied. Enable it in System Settings → Privacy & Security → Microphone."
+                            : `Mic error: ${err.message}`,
+                        "error",
+                    );
+                    setLive(false);
+                } finally {
+                    toggleBtn.disabled = false;
+                }
+            }
+
+            function stop() {
+                running = false;
+                cancelAnimationFrame(rafId);
+                if (analyser) analyser.disconnect();
+                if (gainNode) gainNode.disconnect();
+                if (audioCtx) audioCtx.close();
+                if (stream) stream.getTracks().forEach((t) => t.stop());
+                analyser = null;
+                gainNode = null;
+                audioCtx = null;
+                stream = null;
+                setLive(false);
+                setStatus("Stopped. Click start to listen again.");
+                toggleBtn.textContent = "Start Listening";
+                clippingEl.textContent = "Clipping: —";
+                sampleRateEl.textContent = "Sample rate: —";
+                deviceLabelEl.textContent = "Input: (not selected)";
+                lastFrame = 0;
+            }
+
+            toggleBtn.addEventListener("click", () => {
+                if (running) stop();
+                else start();
+            });
+
+            gainSlider.addEventListener("input", () => {
+                const val = parseFloat(gainSlider.value);
+                gainValue.textContent = val.toFixed(1) + "×";
+                if (gainNode) gainNode.gain.value = val;
+            });
+
+            smoothSlider.addEventListener("input", () => {
+                targetPoints = parseInt(smoothSlider.value, 10);
+                smoothValue.textContent = `${targetPoints} pts`;
+            });
+
+            animateCheckbox.addEventListener("change", () => {
+                animationEnabled = animateCheckbox.checked;
+            });
+
+            fpsSlider.addEventListener("input", () => {
+                fpsCap = parseInt(fpsSlider.value, 10);
+                fpsValue.textContent = `${fpsCap} fps`;
+            });
+
+            strokeSlider.addEventListener("input", () => {
+                strokeWidth = parseFloat(strokeSlider.value);
+                strokeValue.textContent = `${strokeWidth.toFixed(1)} px`;
+            });
+
+            trailSlider.addEventListener("input", () => {
+                fadeAmount = parseFloat(trailSlider.value);
+                trailValue.textContent = `${fadeAmount.toFixed(2)} fade`;
+            });
+
+            // initialize UI labels
+            trailValue.textContent = `${fadeAmount.toFixed(2)} fade`;
+            strokeValue.textContent = `${strokeWidth.toFixed(1)} px`;
+            fpsValue.textContent = `${fpsCap} fps`;
+            gainValue.textContent = `${parseFloat(gainSlider.value).toFixed(1)}×`;
+            smoothValue.textContent = `${targetPoints} pts`;
+        </script>
+    </body>
+</html>
