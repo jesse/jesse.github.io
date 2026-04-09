@@ -1,1 +1,41 @@
+# Claude Code
 .claude
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials*.json
+service-account*.json
+*secret*
+!*secret*.go
+!*secret*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor and IDE
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# Go
+vendor/
+
+# Planning artifacts
+plan.md
+plan-checklist.md
+research.md
+task.md
+review.md
+walkthrough.md
+walkthrough-simple.md
