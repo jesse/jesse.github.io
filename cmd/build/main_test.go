@@ -23,6 +23,7 @@ func TestDeriveSlug(t *testing.T) {
 		{filename: "2026-04-09-hello-world.md", want: "hello-world"},
 		{filename: "2026-04-09T110000-hello-world.md", want: "hello-world"},
 		{filename: "hello-world.md", want: "hello-world"},
+		{filename: "2026-04-09T110000.md", want: ""},
 	}
 
 	for _, test := range tests {
@@ -32,6 +33,57 @@ func TestDeriveSlug(t *testing.T) {
 				t.Fatalf("deriveSlug(%q) = %q, want %q", test.filename, got, test.want)
 			}
 		})
+	}
+}
+
+func TestSlugify(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		title string
+		want  string
+	}{
+		{title: "Hello World", want: "hello-world"},
+		{title: "My First Post!", want: "my-first-post"},
+		{title: "  Leading & Trailing  ", want: "leading-trailing"},
+		{title: "UPPER CASE", want: "upper-case"},
+		{title: "dashes--already---here", want: "dashes-already-here"},
+		{title: "", want: ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.title, func(t *testing.T) {
+			t.Parallel()
+			if got := slugify(test.title); got != test.want {
+				t.Fatalf("slugify(%q) = %q, want %q", test.title, got, test.want)
+			}
+		})
+	}
+}
+
+func TestSlugDerivedFromTitle(t *testing.T) {
+	root := t.TempDir()
+	writeTestTemplates(t, root)
+	writeFile(t, filepath.Join(root, "posts", "2026-04-09T110000.md"), `---
+title: "My Great Post"
+date: "2026-04-09T110000"
+tags: []
+draft: false
+---
+
+Body text.
+`)
+
+	builder := newTestBuilder(t, root)
+	posts, err := builder.loadPosts()
+	if err != nil {
+		t.Fatalf("loadPosts() error = %v", err)
+	}
+	if len(posts) != 1 {
+		t.Fatalf("loadPosts() len = %d, want 1", len(posts))
+	}
+	if posts[0].Slug != "my-great-post" {
+		t.Fatalf("post slug = %q, want %q", posts[0].Slug, "my-great-post")
 	}
 }
 
@@ -357,7 +409,7 @@ func TestRewriteImagesGeneratesResponsivePlans(t *testing.T) {
 	}
 
 	for _, width := range []int{480, 768, 1200, 1600} {
-		outputPath := filepath.Join(root, "assets", "hello-world", fmt.Sprintf("local-%dw.png", width))
+		outputPath := filepath.Join(root, "p", "assets", "hello-world", fmt.Sprintf("local-%dw.png", width))
 		if _, err := os.Stat(outputPath); err != nil {
 			t.Fatalf("expected generated asset %s: %v", outputPath, err)
 		}
@@ -369,9 +421,8 @@ func TestCleanupGeneratedOutput(t *testing.T) {
 
 	writeFile(t, filepath.Join(root, "index.html"), "<!-- "+generatedMarker+" -->")
 	writeFile(t, filepath.Join(root, "page", "2", "index.html"), "older page")
-	writeFile(t, filepath.Join(root, "assets", "old-post", "hero-480w.png"), "asset")
-	writeFile(t, filepath.Join(root, "old-post", "index.html"), "<!-- "+generatedMarker+" -->")
-	writeFile(t, filepath.Join(root, "keep-post", "index.html"), "<!doctype html><p>keep</p>")
+	writeFile(t, filepath.Join(root, "p", "assets", "old-post", "hero-480w.png"), "asset")
+	writeFile(t, filepath.Join(root, "p", "old-post", "index.html"), "<!-- "+generatedMarker+" -->")
 	writeFile(t, filepath.Join(root, "mathsite", "index.html"), "<!-- "+generatedMarker+" -->")
 
 	if err := cleanupGeneratedOutput(root); err != nil {
@@ -380,12 +431,8 @@ func TestCleanupGeneratedOutput(t *testing.T) {
 
 	assertMissing(t, filepath.Join(root, "index.html"))
 	assertMissing(t, filepath.Join(root, "page"))
-	assertMissing(t, filepath.Join(root, "assets"))
-	assertMissing(t, filepath.Join(root, "old-post"))
+	assertMissing(t, filepath.Join(root, "p"))
 
-	if _, err := os.Stat(filepath.Join(root, "keep-post")); err != nil {
-		t.Fatalf("keep-post should remain: %v", err)
-	}
 	if _, err := os.Stat(filepath.Join(root, "mathsite")); err != nil {
 		t.Fatalf("protected directory should remain: %v", err)
 	}
@@ -440,7 +487,7 @@ Draft body.
 
 	indexHTML := readFile(t, filepath.Join(root, "index.html"))
 	pageTwoHTML := readFile(t, filepath.Join(root, "page", "2", "index.html"))
-	postHTML := readFile(t, filepath.Join(root, "post-12", "index.html"))
+	postHTML := readFile(t, filepath.Join(root, "p", "post-12", "index.html"))
 
 	if !strings.Contains(indexHTML, "Newest") || !strings.Contains(indexHTML, "Second newest") {
 		t.Fatalf("index.html missing newest posts:\n%s", indexHTML)

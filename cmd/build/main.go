@@ -38,11 +38,14 @@ const (
 	chromaStyleName     = "monokai"
 	responsiveSizes     = "(min-width: 58rem) 54rem, calc(100vw - 2rem)"
 	postDateLayout      = "2006-01-02T150405"
+	postsOutputDir      = "p"
 )
 
 var (
-	slugTimestampPrefix = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{6}-`)
+	slugTimestampPrefix = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{6}-?`)
 	slugDatePrefix      = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-`)
+	slugifyNonAlnum     = regexp.MustCompile(`[^a-z0-9]+`)
+	slugifyMultiDash    = regexp.MustCompile(`-{2,}`)
 	htmlImageTagPattern = regexp.MustCompile(`(?is)<img([^>]*?)src="([^"]+)"([^>]*)>`)
 	markdownImageTarget = regexp.MustCompile(`!\[[^\]]*]\(([^)]+)\)`)
 	paragraphPattern    = regexp.MustCompile(`(?is)<p>(.*?)</p>`)
@@ -55,6 +58,7 @@ var (
 		"assets":       {},
 		"cmd":          {},
 		"mathsite":     {},
+		postsOutputDir: {},
 		"page":         {},
 		"posts":        {},
 		"templates":    {},
@@ -323,6 +327,8 @@ func (b *siteBuilder) parsePost(postPath string) (Post, error) {
 			return Post{}, validationError{Path: relativePath(b.root, postPath), Field: "slug", Problem: err.Error()}
 		}
 		slug = value
+	} else if slug == "" {
+		slug = slugify(title)
 	}
 	if err := validateSlug(slug); err != nil {
 		return Post{}, validationError{Path: relativePath(b.root, postPath), Field: "slug", Problem: err.Error()}
@@ -447,6 +453,14 @@ func validateSlug(slug string) error {
 		return fmt.Errorf("is reserved by the site structure")
 	}
 	return nil
+}
+
+func slugify(title string) string {
+	s := strings.ToLower(title)
+	s = slugifyNonAlnum.ReplaceAllString(s, "-")
+	s = slugifyMultiDash.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	return s
 }
 
 func deriveSlug(filename string) string {
@@ -718,12 +732,12 @@ func (b *siteBuilder) planResponsiveImage(post Post, originalSrc string) (respon
 	variants := make([]imageVariantPlan, 0, len(widths))
 	for _, width := range widths {
 		height := int(math.Round(float64(config.Height) * (float64(width) / float64(config.Width))))
-		outputPath := path.Join("assets", post.Slug, fmt.Sprintf("%s-%dw%s", base, width, ext))
+		assetSubPath := path.Join("assets", post.Slug, fmt.Sprintf("%s-%dw%s", base, width, ext))
 		variants = append(variants, imageVariantPlan{
 			Width:            width,
 			Height:           height,
-			OutputPath:       outputPath,
-			PostRelativePath: path.Join("..", outputPath),
+			OutputPath:       path.Join(postsOutputDir, assetSubPath),
+			PostRelativePath: path.Join("..", assetSubPath),
 		})
 	}
 
@@ -886,7 +900,7 @@ func encodeImage(outputPath string, img image.Image, detectedFormat string) erro
 
 func (b *siteBuilder) writePosts(posts []Post) error {
 	for _, post := range posts {
-		outputPath := filepath.Join(b.root, post.Slug, "index.html")
+		outputPath := filepath.Join(b.root, postsOutputDir, post.Slug, "index.html")
 		data := postPageData{
 			Title:       post.Title,
 			DisplayDate: post.DisplayDate,
@@ -979,32 +993,8 @@ func cleanupGeneratedOutput(root string) error {
 	if err := os.RemoveAll(filepath.Join(root, "page")); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(filepath.Join(root, "assets")); err != nil {
+	if err := os.RemoveAll(filepath.Join(root, postsOutputDir)); err != nil {
 		return err
-	}
-
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return err
-	}
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		if _, protected := protectedDirs[entry.Name()]; protected {
-			continue
-		}
-
-		indexPath := filepath.Join(root, entry.Name(), "index.html")
-		matches, err := fileContains(indexPath, generatedMarker)
-		if err != nil {
-			return err
-		}
-		if matches {
-			if err := os.RemoveAll(filepath.Join(root, entry.Name())); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }

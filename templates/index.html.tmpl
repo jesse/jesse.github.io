@@ -224,7 +224,7 @@
                 {{ range .Posts }}
                 <li>
                     <p class="post-date">{{ .DisplayDate }}</p>
-                    <a class="post-link" href="/{{ .Slug }}/">{{ .Title }}</a>
+                    <a class="post-link" href="/p/{{ .Slug }}/">{{ .Title }}</a>
                     <p class="post-excerpt">{{ .Excerpt }}</p>
                 </li>
                 {{ end }}
