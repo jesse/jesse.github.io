@@ -338,7 +338,7 @@ func TestRewriteImagesGeneratesResponsivePlans(t *testing.T) {
 	if !strings.Contains(rewritten, `srcset="../assets/hello-world/local-480w.png 480w`) {
 		t.Fatalf("rewritten output missing local srcset: %s", rewritten)
 	}
-	if !strings.Contains(rewritten, `sizes="(min-width: 52rem) 44rem, calc(100vw - 2rem)"`) {
+	if !strings.Contains(rewritten, `sizes="(min-width: 58rem) 54rem, calc(100vw - 2rem)"`) {
 		t.Fatalf("rewritten output missing sizes attribute: %s", rewritten)
 	}
 	if strings.Count(rewritten, `loading="lazy"`) != 2 {

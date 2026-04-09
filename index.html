@@ -15,14 +15,14 @@
 
         body {
             margin: 0;
-            background: #1a1a1a;
-            color: #e8e8e8;
-            font-family: Georgia, "Times New Roman", serif;
-            line-height: 1.7;
+            background: #1c1b19;
+            color: #eae8e4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.8;
         }
 
         a {
-            color: #5599ff;
+            color: #5ebaa8;
             text-decoration: none;
         }
 
@@ -31,19 +31,14 @@
         }
 
         .shell {
-            max-width: 44rem;
+            max-width: 54rem;
             margin: 0 auto;
-            padding: 3rem 1rem 4rem;
+            padding: 4rem 1.5rem 5rem;
         }
 
         .site-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 1rem 2rem;
-            align-items: flex-end;
-            margin-bottom: 3rem;
-            padding-bottom: 1.25rem;
+            margin-bottom: 3.5rem;
+            padding-bottom: 1.5rem;
             border-bottom: 1px solid rgba(232, 232, 232, 0.12);
         }
 
@@ -58,29 +53,77 @@
         }
 
         .site-tagline {
-            margin: 0.4rem 0 0;
-            color: #bdbdbd;
+            margin: 0.6rem 0 0;
+            color: #b8b5b0;
             font-size: 1rem;
         }
 
-        .projects-title {
-            margin: 0 0 0.35rem;
-            color: #9e9e9e;
-            font-size: 0.85rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+        .projects {
+            margin-top: 1.25rem;
+            interpolate-size: allow-keywords;
+        }
+
+        .projects summary {
+            cursor: pointer;
+            color: #a8a5a0;
+            font-size: 0.88rem;
+            list-style: none;
+        }
+
+        .projects summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .projects summary::after {
+            content: " +";
+        }
+
+        .projects[open] summary::after {
+            content: " \2212";
+        }
+
+        .projects::details-content {
+            height: 0;
+            overflow: clip;
+            transition: height 0.3s ease-in-out, content-visibility 0.3s ease-in-out allow-discrete;
+        }
+
+        .projects[open]::details-content {
+            height: auto;
+        }
+
+        @starting-style {
+            .projects[open]::details-content {
+                height: 0;
+            }
         }
 
         .projects-links {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.85rem;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .projects-links a {
+            padding: 0.3rem 0.75rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.4rem;
+            font-size: 0.88rem;
+            color: #c5c3be;
+        }
+
+        .projects-links a:hover {
+            background: rgba(94, 186, 168, 0.12);
+            color: #5ebaa8;
+            text-decoration: none;
         }
 
         .posts-title {
-            margin: 0 0 1.5rem;
+            margin: 0 0 2rem;
             font-size: 1.1rem;
-            color: #cfcfcf;
+            color: #cbc9c4;
         }
 
         .post-list {
@@ -88,11 +131,11 @@
             padding: 0;
             margin: 0;
             display: grid;
-            gap: 2.4rem;
+            gap: 3rem;
         }
 
         .post-list li {
-            padding-bottom: 2.4rem;
+            padding-bottom: 3rem;
             border-bottom: 1px solid rgba(232, 232, 232, 0.08);
         }
 
@@ -102,31 +145,31 @@
         }
 
         .post-date {
-            margin: 0 0 0.45rem;
+            margin: 0 0 0.6rem;
             font-size: 0.95rem;
-            color: #ababab;
+            color: #a8a5a0;
         }
 
         .post-link {
             display: inline-block;
-            margin: 0 0 0.65rem;
-            color: #e8e8e8;
+            margin: 0 0 0.8rem;
+            color: #eae8e4;
             font-size: clamp(1.4rem, 3vw, 1.8rem);
             line-height: 1.15;
         }
 
         .post-link:hover {
-            color: #5599ff;
+            color: #5ebaa8;
             text-decoration: none;
         }
 
         .post-excerpt {
             margin: 0;
-            color: #c9c9c9;
+            color: #c5c3be;
         }
 
         .empty-state {
-            color: #bdbdbd;
+            color: #b8b5b0;
         }
 
         .pagination {
@@ -134,7 +177,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
-            margin-top: 3rem;
+            margin-top: 4rem;
             font-size: 0.98rem;
         }
 
@@ -143,8 +186,8 @@
         }
 
         .site-footer {
-            margin-top: 4rem;
-            color: #9c9c9c;
+            margin-top: 5rem;
+            color: #9a9894;
             font-size: 0.95rem;
         }
 
@@ -163,17 +206,15 @@
     <!-- generated by jesseyoung blog build -->
     <main class="shell">
         <header class="site-header">
-            <div>
-                <h1 class="site-title"><a href="/">Jesse Young</a></h1>
-                <p class="site-tagline">Notes on projects, software, and whatever earns a place on the homepage.</p>
-            </div>
-            <nav aria-label="Projects">
-                <p class="projects-title">Projects</p>
-                <div class="projects-links">
+            <h1 class="site-title"><a href="/">Jesse Young</a></h1>
+            <p class="site-tagline">Notes on projects, software, and whatever earns a place on the homepage.</p>
+            <details class="projects">
+                <summary>Projects</summary>
+                <nav class="projects-links" aria-label="Projects">
                     <a href="/mathsite/">Math Adventures</a>
                     <a href="/waveform-viz/">Waveform</a>
-                </div>
-            </nav>
+                </nav>
+            </details>
         </header>
 
         <section aria-labelledby="posts-heading">
@@ -202,7 +243,7 @@
         </nav>
 
         <footer class="site-footer">
-            <p>Built without JavaScript. Written in markdown. Rendered by a small Go program.</p>
+            <p>Jesse Young / EMAIL HERE / LINK 1 / LINK 2</p>
         </footer>
     </main>
 </body>
