@@ -85,8 +85,8 @@ Edit `site.config.json` in the repository (on github.com, open it and click the 
 }
 ```
 
-`title` is shown top-left on the page and in the browser tab. `name` is the copyright
-line, and goes into the copyright field inside every image file the site serves.
+`title` is shown top-left on the page, in the browser tab and in the copyright line.
+`name` goes into the copyright field inside every image file the site serves.
 `bookingLabel` and `bookingUrl` are the white button bottom-right; the URL can
 be a `mailto:` address or a link to a booking page. `intervalMs` is how long each photo stays,
 in milliseconds (5000 is five seconds). `fadeMs` is how long the crossfade between two photos takes (1000 is one second). Commit the change and the site rebuilds.
