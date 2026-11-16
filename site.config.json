@@ -1,0 +1,8 @@
+{
+  "name": "Jesse Young",
+  "title": "Jesse Young Photography",
+  "bookingLabel": "Book a session",
+  "bookingUrl": "mailto:youngj@gmail.com?subject=Jesse%20Young%20Photography%20inquiry",
+  "intervalMs": 5000,
+  "fadeMs": 1200
+}

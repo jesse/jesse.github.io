@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- GitHub Pages cannot set response headers, so the CSP lives here. It still
+     stops the browser loading anything from another domain. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="Photography by {{name}}.">
+<meta name="robots" content="noai, noimageai">
+<meta property="og:title" content="{{title}}">
+<link rel="icon" href="data:,">
+<link rel="preload" href="fonts/fredoka-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face{
+    font-family:Fredoka;font-style:normal;font-weight:300 700;font-display:swap;
+    src:url(fonts/fredoka-latin.woff2) format("woff2");
+  }
+  :root{
+    --bg:#000;
+    --ink:#fff;
+    --ink-soft:rgba(255,255,255,.72);
+    --ink-dim:rgba(255,255,255,.45);
+    --edge:clamp(20px,3.5vw,48px);
+    --foot:32px;
+    --fade:{{fadeMs}}ms;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--ink);overflow:hidden;
+    font:400 15px/1.4 Fredoka,"Avenir Next",Avenir,"Helvetica Neue",sans-serif;
+    letter-spacing:.01em;-webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  #stage{position:fixed;top:0;left:0;right:0;bottom:var(--foot);overflow:hidden}
+  .layer{position:absolute;inset:0;opacity:0;transition:opacity var(--fade) ease}
+  .layer.on{opacity:1}
+  .layer img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+  .layer .bg{display:none}
+  /* Blur fill for photos that would otherwise lose more than a quarter of
+     their area to the crop. */
+  .layer.whole .pic{object-fit:contain}
+  .layer.whole .bg{display:block;filter:blur(36px) brightness(.45);transform:scale(1.12)}
+  /* A short scrim behind the title so it reads on bright skies. */
+  .scrim{position:fixed;top:0;left:0;right:0;height:22vh;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,0))}
+
+  .title{position:fixed;top:var(--edge);left:var(--edge);font-weight:700;font-size:24px;line-height:1.1;
+    text-shadow:0 1px 2px rgba(0,0,0,.6),0 2px 12px rgba(0,0,0,.4)}
+
+  footer{position:fixed;left:0;right:0;bottom:0;height:var(--foot);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;padding:0 var(--edge);
+    font-size:12px;color:var(--ink-dim);text-align:center}
+  footer p{margin:0}
+  footer b{font-weight:inherit;white-space:nowrap}
+  /* Booking pill: the one call to action, solid white so it reads on any photo. */
+  .book{position:fixed;right:var(--edge);bottom:calc(var(--foot) + var(--edge));
+    display:inline-flex;align-items:center;height:36px;padding:0 22px;border-radius:999px;white-space:nowrap;
+    background:var(--ink);color:#000;font-weight:600;font-size:16px;line-height:1;
+    box-shadow:0 6px 18px rgba(0,0,0,.45);transition:transform .25s,box-shadow .25s}
+  .book:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.55)}
+  .book:active{transform:scale(.97)}
+  .book:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .nav{
+    position:fixed;top:0;bottom:var(--foot);width:clamp(48px,8vw,96px);padding:0;border:0;background:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    color:var(--ink-soft);font:inherit;font-size:30px;line-height:1;
+    opacity:0;transition:opacity .4s,color .3s;
+  }
+  .nav.prev{left:0}.nav.next{right:0}
+  body:hover .nav,.nav:focus-visible{opacity:1}
+  .nav:hover{color:var(--ink)}
+  /* The button spans the full height, so an outline on it would run off
+     screen as a stray line. Ring the glyph instead. */
+  .nav:focus-visible{outline:none}
+  .nav:focus-visible span{outline:2px solid var(--ink);outline-offset:8px;border-radius:4px}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .empty{position:fixed;left:0;right:0;top:42%;text-align:center;color:var(--ink-soft);padding:0 var(--edge);font-size:18px}
+  .empty[hidden]{display:none}
+  @media (max-width:640px){
+    :root{--foot:46px}
+    .nav{display:none}
+    .title{font-size:20px}
+    .book{height:34px;padding:0 18px;font-size:15px}
+    footer{font-size:11px;line-height:1.35}
+  }
+  @media (prefers-reduced-motion:reduce){.layer{transition:none}}
+</style>
+</head>
+<body>
+<div id="stage" aria-hidden="true">
+  <div class="layer"><img class="bg" alt="" decoding="async"><img class="pic" alt="" decoding="async"></div>
+  <div class="layer"><img class="bg" alt="" decoding="async"><img class="pic" alt="" decoding="async"></div>
+</div>
+<div class="scrim"></div>
+<p class="empty" id="empty" hidden>No photos yet.</p>
+<a class="title" href=".">{{title}}</a>
+<a class="book" href="{{bookingUrl}}">{{bookingLabel}}</a>
+<button class="nav prev" type="button" aria-label="Previous photo"><span>&#8249;</span></button>
+<button class="nav next" type="button" aria-label="Next photo"><span>&#8250;</span></button>
+<footer><p><b>&copy; {{year}} {{name}}</b> &nbsp;&middot;&nbsp; This site does not use cookies or track you.</p></footer>
+<noscript><p class="empty">The gallery needs JavaScript. <a href="{{bookingUrl}}" style="text-decoration:underline">{{bookingLabel}}</a>.</p></noscript>
+<script>
+(() => {
+  // The build inlines the photo manifest here.
+  const M = {{manifest}};
+  const PHOTOS = M.photos, SIZES = M.sizes;
+  const INTERVAL = {{intervalMs}};
+  // Cover the screen unless the crop would hide more than this share of the
+  // photo; then show it whole over a blurred fill.
+  const MAX_CROP = 0.25;
+
+  const stage = document.getElementById('stage');
+  const layers = Array.from(stage.querySelectorAll('.layer'));
+
+  let front = -1, deck = [], seq = [], cursor = -1, timer = 0, paused = false, busy = false, failures = 0;
+
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Take the next unseen photo. When the deck runs out, reshuffle every
+  // photo, but never let the new round open with the photo on screen.
+  function draw() {
+    if (deck.length === 0) {
+      deck = shuffle(PHOTOS.map((_, i) => i));
+      if (deck.length > 1 && deck[deck.length - 1] === seq[cursor]) deck.unshift(deck.pop());
+    }
+    return deck.pop();
+  }
+
+  // Decide cover vs whole for this photo on this stage, and which file size
+  // is needed. The contain scale over the cover scale is the share of the
+  // photo that survives a cover crop.
+  function plan(p) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const bw = stage.clientWidth * dpr, bh = stage.clientHeight * dpr;
+    const cover = Math.max(bw / p.w, bh / p.h), contain = Math.min(bw / p.w, bh / p.h);
+    const whole = contain / cover < 1 - MAX_CROP;
+    const need = Math.max(p.w, p.h) * (whole ? contain : cover);
+    const size = SIZES.find((s) => s >= need) || SIZES[SIZES.length - 1];
+    return { url: `${p.f}-${size}.jpg`, whole };
+  }
+
+  function show(i) {
+    busy = true;
+    const { url, whole } = plan(PHOTOS[i]);
+    const next = layers[front === 0 ? 1 : 0];
+    // Load the file off screen first, then swap. The swap waits only on the
+    // load event; img.decode() is not used because it can stall or reject
+    // in some browsers and would leave the stage empty.
+    const pre = new Image();
+    pre.onload = () => {
+      failures = 0;
+      next.classList.toggle('whole', whole);
+      next.querySelector('.pic').src = url;
+      next.querySelector('.bg').src = whole ? url : '';
+      next.classList.add('on');
+      if (front >= 0) layers[front].classList.remove('on');
+      front = layers.indexOf(next);
+      busy = false;
+      schedule();
+      warm();
+    };
+    pre.onerror = () => {
+      // Skip a broken file, but give up after one full pass so a bad build
+      // cannot turn into an endless loop.
+      busy = false;
+      if (++failures < PHOTOS.length) forward();
+    };
+    pre.src = url;
+  }
+
+  // Warm the cache for the photo that will come next, so the auto-advance
+  // never fades into a half-loaded image.
+  function warm() {
+    const upcoming = cursor < seq.length - 1 ? seq[cursor + 1] : deck[deck.length - 1];
+    if (upcoming !== undefined) { const im = new Image(); im.src = plan(PHOTOS[upcoming]).url; }
+  }
+
+  function forward() {
+    if (busy || PHOTOS.length === 0) return;
+    if (cursor < seq.length - 1) cursor++; else { seq.push(draw()); cursor = seq.length - 1; }
+    show(seq[cursor]);
+  }
+  function back() {
+    if (busy || cursor <= 0) return;
+    cursor--;
+    show(seq[cursor]);
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (paused || document.hidden) return;
+    timer = setTimeout(forward, INTERVAL);
+  }
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); forward(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+    else if (e.key === ' ') { e.preventDefault(); paused = !paused; schedule(); }
+  });
+  document.querySelector('.nav.next').addEventListener('click', forward);
+  document.querySelector('.nav.prev').addEventListener('click', back);
+  document.addEventListener('visibilitychange', schedule);
+
+  // Re-plan the current photo when the window changes shape.
+  let rs = 0;
+  addEventListener('resize', () => {
+    clearTimeout(rs);
+    rs = setTimeout(() => { if (front >= 0) layers[front].classList.toggle('whole', plan(PHOTOS[seq[cursor]]).whole); }, 150);
+  });
+
+  // Swipe on the photo.
+  let x0 = null;
+  stage.addEventListener('pointerdown', (e) => { x0 = e.clientX; });
+  addEventListener('pointerup', (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) (dx < 0 ? forward : back)();
+  });
+
+  if (PHOTOS.length === 0) document.getElementById('empty').hidden = false;
+  else forward();
+})();
+</script>
+</body>
+</html>

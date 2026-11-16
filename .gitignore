@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+# Working notes for the owner and the coding agent; not published.
+CLAUDE.md
+SPEC.md
+design-structure.md

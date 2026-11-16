@@ -1,0 +1,49 @@
+# Search engines may index the page. AI training and scraping crawlers may not.
+# robots.txt is advisory. GitHub Pages cannot set response headers, so the
+# other signals are the noai meta tag, ai.txt and .well-known/tdmrep.json.
+
+# Content Signals (https://contentsignals.org): what crawlers may do with the content.
+Content-Signal: search=yes, ai-input=no, ai-train=no
+
+# AI training and data-collection crawlers
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: anthropic-ai
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: Claude-SearchBot
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: meta-externalagent
+User-agent: FacebookBot
+User-agent: Amazonbot
+User-agent: cohere-ai
+User-agent: cohere-training-data-crawler
+User-agent: Diffbot
+User-agent: omgili
+User-agent: omgilibot
+User-agent: Timpibot
+User-agent: ImagesiftBot
+User-agent: img2dataset
+User-agent: PetalBot
+User-agent: YouBot
+User-agent: AI2Bot
+User-agent: Ai2Bot-Dolma
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: Kangaroo Bot
+User-agent: Webzio-Extended
+User-agent: Meta-ExternalFetcher
+User-agent: SemrushBot-OCOB
+User-agent: Scrapy
+Disallow: /
+
+# Everyone else: the page is fine to index. Nothing in img/ needs crawling.
+User-agent: *
+Allow: /
+Disallow: /img/

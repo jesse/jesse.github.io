@@ -1,0 +1,5 @@
+# Spawning ai.txt (https://site.spawning.ai/spawning-ai-txt)
+# No part of this site may be used to train AI or machine-learning models.
+User-Agent: *
+Disallow: /
+Disallow: *

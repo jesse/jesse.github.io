@@ -1,0 +1,14 @@
+{
+  "name": "jyphotos",
+  "private": true,
+  "type": "module",
+  "description": "Static photography portfolio. Build resizes photos/ into dist/.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "python3 -m http.server -d dist 8000"
+  },
+  "dependencies": {
+    "sharp": "^0.34.3"
+  }
+}
