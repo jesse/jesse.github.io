@@ -45,6 +45,9 @@
   #stage.dragging .layer{transition:none}
   /* The neighbour being pulled in: visible at once, positioned by transform. */
   .layer.peek{opacity:1}
+  /* A layer that has left the screen. visibility is not transitioned, so the
+     fade-out and transform reset that follow happen unseen. */
+  .layer.gone{visibility:hidden}
   .layer img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
     -webkit-user-drag:none;user-select:none;-webkit-user-select:none}
   .layer .bg{display:none}
@@ -197,6 +200,7 @@
       // cannot turn into an endless loop.
       if (!ok) { if (++failures < PHOTOS.length) forward(); return; }
       failures = 0;
+      next.classList.remove('gone');
       next.classList.add('on');
       if (front >= 0) layers[front].classList.remove('on');
       front = layers.indexOf(next);
@@ -255,6 +259,7 @@
         // Blank the layer so a slow load shows black, not the previous photo.
         drag.back.querySelector('.pic').removeAttribute('src');
         drag.back.querySelector('.bg').removeAttribute('src');
+        drag.back.classList.remove('gone');
         drag.back.classList.add('peek');
         fill(drag.back, drag.target);
       } else {
@@ -274,29 +279,42 @@
     const speed = Math.abs(d.dx) / Math.max(1, performance.now() - d.t0);
     const go = d.target >= 0 && e.type === 'pointerup' && (Math.abs(d.dx) > W / 5 || speed > 0.5);
     const fr = layers[front];
+    // Hide a layer that has slid off screen before resetting it, so its
+    // fade-out and transform reset happen unseen. visibility never animates.
+    const park = (layer) => {
+      layer.classList.add('gone');
+      layer.classList.remove('on', 'peek');
+      layer.style.transform = '';
+    };
     const settle = () => {
-      // Tidy up with transitions off, so the layer that left does not fade
-      // and the one that arrived does not jump.
-      stage.classList.add('dragging');
       if (go) {
         cursor += d.dir < 0 ? 1 : -1;
-        fr.classList.remove('on');
+        park(fr);
+        d.back.classList.remove('peek');
         d.back.classList.add('on');
+        d.back.style.transform = '';
         front = layers.indexOf(d.back);
+      } else {
+        fr.style.transform = '';
+        if (d.target >= 0) park(d.back);
       }
-      d.back.classList.remove('peek');
-      fr.style.transform = d.back.style.transform = '';
-      void stage.offsetWidth;
-      stage.classList.remove('dragging');
       drag = null;
       schedule();
       warm();
     };
-    if (d.dir === 0) { settle(); return; }
     stage.classList.remove('dragging');          // transforms animate from here
-    fr.style.transform = go ? `translateX(${-d.dir * W}px)` : 'translateX(0)';
+    if (d.dir === 0) { settle(); return; }
+    // The photo keeps going the way the finger went; its neighbour lands at 0.
+    fr.style.transform = go ? `translateX(${d.dir * W}px)` : 'translateX(0)';
     if (d.target >= 0) d.back.style.transform = go ? 'translateX(0)' : `translateX(${-d.dir * W}px)`;
-    setTimeout(settle, SLIDE + 20);
+    // Settle when the layer that ends on screen stops moving; the timer is a
+    // fallback for reduced-motion, where no transition runs.
+    const mover = go ? d.back : fr;
+    let done = false;
+    const finish = () => { if (done) return; done = true; mover.removeEventListener('transitionend', onEnd); settle(); };
+    const onEnd = (ev) => { if (ev.target === mover && ev.propertyName === 'transform') finish(); };
+    mover.addEventListener('transitionend', onEnd);
+    setTimeout(finish, SLIDE + 150);
   }
   stage.addEventListener('pointerup', release);
   stage.addEventListener('pointercancel', release);
